@@ -2,17 +2,22 @@ package checker
 
 import (
 	"context"
+	"fmt"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
 
 func CheckDeployment(ctx context.Context, cs *kubernetes.Clientset, namespace string, name string, status string) (bool, error) {
 	resource, err := cs.AppsV1().Deployments(namespace).Get(ctx, name, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return false, NotFoundError{namespace, name}
+	}
 	if err != nil {
 		return false, err
 	}
 	if resource == nil {
-		return false, NotFoundError{namespace, name}
+		return false, fmt.Errorf("API error when checking %s/%s", namespace, name)
 	}
 
 	switch status {
@@ -32,11 +37,14 @@ func CheckDeployment(ctx context.Context, cs *kubernetes.Clientset, namespace st
 func CheckStatefulSet(ctx context.Context, cs *kubernetes.Clientset, namespace string, name string, status string) (bool, error) {
 	// Check if the deployment exists
 	resource, err := cs.AppsV1().StatefulSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return false, NotFoundError{namespace, name}
+	}
 	if err != nil {
 		return false, err
 	}
 	if resource == nil {
-		return false, NotFoundError{namespace, name}
+		return false, fmt.Errorf("API error when checking %s/%s", namespace, name)
 	}
 
 	switch status {
@@ -56,11 +64,14 @@ func CheckStatefulSet(ctx context.Context, cs *kubernetes.Clientset, namespace s
 func CheckReplicaSet(ctx context.Context, cs *kubernetes.Clientset, namespace string, name string, status string) (bool, error) {
 	// Check if the deployment exists
 	resource, err := cs.AppsV1().ReplicaSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return false, NotFoundError{namespace, name}
+	}
 	if err != nil {
 		return false, err
 	}
 	if resource == nil {
-		return false, NotFoundError{namespace, name}
+		return false, fmt.Errorf("API error when checking %s/%s", namespace, name)
 	}
 
 	switch status {
@@ -80,11 +91,14 @@ func CheckReplicaSet(ctx context.Context, cs *kubernetes.Clientset, namespace st
 func CheckDaemonSet(ctx context.Context, cs *kubernetes.Clientset, namespace string, name string, status string) (bool, error) {
 	// Check if the deployment exists
 	resource, err := cs.AppsV1().DaemonSets(namespace).Get(ctx, name, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return false, NotFoundError{namespace, name}
+	}
 	if err != nil {
 		return false, err
 	}
 	if resource == nil {
-		return false, NotFoundError{namespace, name}
+		return false, fmt.Errorf("API error when checking %s/%s", namespace, name)
 	}
 
 	switch status {

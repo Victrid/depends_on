@@ -4,6 +4,7 @@ import (
 	"context"
 	"depends-on/resolver"
 	"errors"
+	"fmt"
 	"k8s.io/client-go/kubernetes"
 	"strconv"
 	"time"
@@ -32,7 +33,7 @@ func CheckResource(ctx context.Context, cs *kubernetes.Clientset, namespace stri
 func WaitUntilResourceReady(ctx context.Context, cs *kubernetes.Clientset, namespace string, name string, resource string, status string) error {
 	tolerance, ok := ctx.Value("tolerance").(int)
 	if !ok {
-		tolerance = 12
+		tolerance = -1
 	}
 	waitTime, ok := ctx.Value("wait_time").(time.Duration)
 	if !ok {
@@ -49,8 +50,11 @@ func WaitUntilResourceReady(ctx context.Context, cs *kubernetes.Clientset, names
 			switch {
 			case errors.As(err, &podNotFoundError), errors.As(err, &notFoundError):
 				// Not found, possibly not yet created, wait and retry
+				fmt.Printf("Resource %s/%s not found, waiting... (tolerance: %d)\n", namespace, name, tolerance)
 				if tolerance > 0 {
 					tolerance--
+				} else if tolerance == -1 {
+					// If tolerance is -1, wait indefinitely
 				} else {
 					return err
 				}

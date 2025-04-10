@@ -2,7 +2,9 @@ package checker
 
 import (
 	"context"
+	"fmt"
 	v1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -41,11 +43,14 @@ func allPod(pods []v1.Pod, functor func(*v1.Pod) bool) bool {
 
 func CheckPod(ctx context.Context, cs *kubernetes.Clientset, namespace string, name string, status string) (bool, error) {
 	resource, err := cs.CoreV1().Pods(namespace).Get(ctx, name, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return false, NotFoundError{namespace, name}
+	}
 	if err != nil {
 		return false, err
 	}
 	if resource == nil {
-		return false, NotFoundError{namespace, name}
+		return false, fmt.Errorf("API error when checking %s/%s", namespace, name)
 	}
 
 	switch status {
@@ -64,11 +69,14 @@ func CheckPod(ctx context.Context, cs *kubernetes.Clientset, namespace string, n
 // - ready: exists a pod selected by the service is ready.
 func CheckService(ctx context.Context, cs *kubernetes.Clientset, namespace string, name string, status string) (bool, error) {
 	resource, err := cs.CoreV1().Services(namespace).Get(ctx, name, metav1.GetOptions{})
+	if errors.IsNotFound(err) {
+		return false, NotFoundError{namespace, name}
+	}
 	if err != nil {
 		return false, err
 	}
 	if resource == nil {
-		return false, NotFoundError{namespace, name}
+		return false, fmt.Errorf("API error when checking %s/%s", namespace, name)
 	}
 
 	// Get the pods selected by the service
